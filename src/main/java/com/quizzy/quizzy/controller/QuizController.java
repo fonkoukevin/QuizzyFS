@@ -26,6 +26,7 @@ public class QuizController {
         this.quizService = quizService;
     }
 
+    // ✅ GET: Retrieve all quizzes for the authenticated user
     @GetMapping
     public ResponseEntity<Map<String, List<Map<String, String>>>> getUserQuizzes(
             @AuthenticationPrincipal Jwt jwt) {
@@ -47,13 +48,14 @@ public class QuizController {
                 .map(quiz -> Map.of(
                         "id", quiz.getId(),
                         "title", quiz.getTitle(),
-                        "description", quiz.getDescription() // Ajout de la description dans la réponse
+                        "description", quiz.getDescription() // Adding description to the response
                 ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(Map.of("data", quizData));
     }
 
+    // ✅ POST: Create a new quiz
     @PostMapping
     public ResponseEntity<Void> createQuiz(
             @AuthenticationPrincipal Jwt jwt,
@@ -82,5 +84,31 @@ public class QuizController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .header("Location", location)
                 .build();
+    }
+
+    // ✅ GET: Retrieve a quiz by its ID and ensure user is the owner
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getQuizById(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        if (jwt == null) {
+            logger.error("❌ JWT is null. Unauthorized request.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // ✅ Extract user ID from the JWT token
+        String uid = jwt.getSubject();
+        logger.info("✅ Retrieving quiz with ID: {} for UID: {}", id, uid);
+
+        // ✅ Fetch the quiz by ID and check if the user is the owner
+        Quiz quiz = quizService.getQuizByIdAndOwner(id, uid);
+
+        if (quiz != null) {
+            return ResponseEntity.ok(quiz); // Return quiz if user is the owner
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Quiz not found or not owned by user");
+        }
     }
 }
