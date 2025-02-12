@@ -2,6 +2,8 @@ package com.quizzy.quizzy.service;
 
 import com.quizzy.quizzy.entity.Quiz;
 import com.quizzy.quizzy.repository.QuizRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,37 +12,62 @@ import java.util.Optional;
 @Service
 public class QuizService {
 
+    private static final Logger logger = LoggerFactory.getLogger(QuizService.class);
     private final QuizRepository quizRepository;
 
     public QuizService(QuizRepository quizRepository) {
         this.quizRepository = quizRepository;
     }
 
-    // ✅ Retrieve all quizzes for a user based on their UID
+    /**
+     * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
+     */
     public List<Quiz> getQuizzesByUser(String ownerUid) {
-        return quizRepository.findByOwnerUid(ownerUid); // 🔥 Retrieve user-specific quizzes
+        return quizRepository.findByOwnerUid(ownerUid);
     }
 
-    // ✅ Create a new quiz
+    /**
+     * 🔥 [Issue 6] Créer un nouveau quiz
+     */
     public Quiz createQuiz(String ownerUid, String title, String description) {
         Quiz quiz = new Quiz();
         quiz.setOwnerUid(ownerUid);
         quiz.setTitle(title);
         quiz.setDescription(description);
-        return quizRepository.save(quiz); // ✅ Save quiz to the database
+        return quizRepository.save(quiz);
     }
 
-    // ✅ Retrieve a quiz by its ID and ensure that the user is the owner
-    public Quiz getQuizByIdAndOwner(String id, String ownerUid) {
-        // Find the quiz by its ID
-        Optional<Quiz> optionalQuiz = quizRepository.findById(id);
+    /**
+     * 🔥 [Issue 7] Récupérer un quiz par ID (uniquement si l'utilisateur en est le propriétaire)
+     */
+    public Optional<Quiz> getQuizById(String quizId, String ownerUid) {
+        Optional<Quiz> quiz = quizRepository.findById(quizId);
+        if (quiz.isPresent() && quiz.get().getOwnerUid().equals(ownerUid)) {
+            return quiz;
+        }
+        return Optional.empty(); // Quiz non trouvé ou appartient à un autre utilisateur
+    }
 
-        // If the quiz exists and the owner UID matches, return the quiz
-        if (optionalQuiz.isPresent() && optionalQuiz.get().getOwnerUid().equals(ownerUid)) {
-            return optionalQuiz.get();
+    /**
+     * 🔥 [Issue 8] Mettre à jour le titre d'un quiz
+     */
+    public boolean updateQuizTitle(String quizId, String ownerUid, String newTitle) {
+        Optional<Quiz> quizOptional = quizRepository.findById(quizId);
+
+        if (quizOptional.isPresent()) {
+            Quiz quiz = quizOptional.get();
+
+            if (!quiz.getOwnerUid().equals(ownerUid)) {
+                logger.warn("🚫 Tentative de modification d'un quiz ne appartenant pas à l'utilisateur !");
+                return false; // L'utilisateur ne possède pas ce quiz
+            }
+
+            quiz.setTitle(newTitle);
+            quizRepository.save(quiz);
+            return true;
         }
 
-        // If quiz does not exist or owner UID doesn't match, return null
-        return null;
+        logger.warn("❌ Quiz ID {} non trouvé.", quizId);
+        return false; // Quiz non trouvé
     }
 }
