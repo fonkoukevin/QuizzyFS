@@ -17,4 +17,6 @@ public class Quiz {
 
     @Column(nullable = false)
     private String ownerUid; // 🔥 UID of the user who created the quiz
+
+    private String description; // ✅ Ajout de la description
 }

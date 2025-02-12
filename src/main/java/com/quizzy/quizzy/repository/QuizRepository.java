@@ -1,7 +1,5 @@
 package com.quizzy.quizzy.repository;
 
-
-
 import com.quizzy.quizzy.entity.Quiz;
 import org.springframework.data.jpa.repository.JpaRepository;
 
