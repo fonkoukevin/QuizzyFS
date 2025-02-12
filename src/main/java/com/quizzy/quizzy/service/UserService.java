@@ -17,7 +17,7 @@ public class UserService {
     }
 
     public void saveUser(String uid, String username) {
-        if (!userRepository.existsById(uid)) { // 🔥 Vérifie si l'utilisateur existe déjà
+        if (!userRepository.existsById(uid)) { //  Vérifie si l'utilisateur existe déjà
             User user = new User();
             user.setUid(uid);
             user.setUsername(username);
