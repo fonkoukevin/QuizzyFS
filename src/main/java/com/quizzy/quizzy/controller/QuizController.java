@@ -26,7 +26,7 @@ public class QuizController {
         this.quizService = quizService;
     }
 
-    @GetMapping("/")
+    @GetMapping
     public ResponseEntity<Map<String, List<Map<String, String>>>> getUserQuizzes(
             @AuthenticationPrincipal Jwt jwt) {
 
