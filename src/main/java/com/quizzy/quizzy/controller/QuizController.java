@@ -44,9 +44,43 @@ public class QuizController {
 
         // ✅ Format response
         List<Map<String, String>> quizData = quizzes.stream()
-                .map(quiz -> Map.of("id", quiz.getId(), "title", quiz.getTitle()))
+                .map(quiz -> Map.of(
+                        "id", quiz.getId(),
+                        "title", quiz.getTitle(),
+                        "description", quiz.getDescription() // Ajout de la description dans la réponse
+                ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(Map.of("data", quizData));
+    }
+
+    @PostMapping
+    public ResponseEntity<Void> createQuiz(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody Map<String, String> quizData) {
+
+        if (jwt == null) {
+            logger.error("❌ JWT is null. Unauthorized request.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String uid = jwt.getSubject();
+        String title = quizData.get("title");
+        String description = quizData.get("description");
+
+        if (title == null || title.isEmpty()) {
+            logger.error("❌ Title is required.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        // ✅ Create quiz
+        Quiz newQuiz = quizService.createQuiz(uid, title, description);
+
+        // ✅ Construct the Location header
+        String location = String.format("/api/quiz/%s", newQuiz.getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("Location", location)
+                .build();
     }
 }
