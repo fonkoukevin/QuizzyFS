@@ -25,13 +25,13 @@ public class PingController {
         Map<String, String> details = new HashMap<>();
 
         try {
-
+            // 🔹 Vérifier si la base de données répond
             jdbcTemplate.queryForObject("SELECT 1", Integer.class);
             details.put("database", "OK");
             response.put("status", "OK");
         } catch (Exception e) {
             details.put("database", "KO");
-            response.put("status", "Partial");
+            response.put("status", "Partial"); // 🔥 Indique que seule la DB est en panne
         }
 
         response.put("details", details);
