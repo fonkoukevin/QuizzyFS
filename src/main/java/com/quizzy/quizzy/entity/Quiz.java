@@ -4,19 +4,25 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Getter
 @Setter
 public class Quiz {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID) // Generates a unique ID
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     private String title;
 
     @Column(nullable = false)
-    private String ownerUid; // 🔥 UID of the user who created the quiz
+    private String ownerUid;
 
-    private String description; // ✅ Ajout de la description
+    private String description;
+
+    @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Question> questions; // Liste des questions associées à ce quiz
+
 }
