@@ -40,12 +40,15 @@ public class QuizService {
     /**
      * 🔥 [Issue 7] Récupérer un quiz par ID (uniquement si l'utilisateur en est le propriétaire)
      */
-    public Optional<Quiz> getQuizById(String quizId, String ownerUid) {
+    public Optional<Quiz> getQuizWithQuestionsById(String quizId, String ownerUid) {
         Optional<Quiz> quiz = quizRepository.findById(quizId);
+
         if (quiz.isPresent() && quiz.get().getOwnerUid().equals(ownerUid)) {
-            return quiz;
+            Quiz fetchedQuiz = quiz.get();
+            fetchedQuiz.getQuestions().size(); // 🔥 Force le chargement des questions si nécessaire (Lazy Fetch)
+            return Optional.of(fetchedQuiz);
         }
-        return Optional.empty(); // Quiz non trouvé ou appartient à un autre utilisateur
+        return Optional.empty();
     }
 
     /**
@@ -63,11 +66,13 @@ public class QuizService {
             }
 
             quiz.setTitle(newTitle);
-            quizRepository.save(quiz);
+            quizRepository.save
+                    (quiz);
             return true;
         }
 
         logger.warn("❌ Quiz ID {} non trouvé.", quizId);
         return false; // Quiz non trouvé
     }
+
 }

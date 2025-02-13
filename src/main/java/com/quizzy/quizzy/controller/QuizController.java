@@ -31,9 +31,7 @@ public class QuizController {
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
     @GetMapping
-    public ResponseEntity<Map<String, List<Map<String, String>>>> getUserQuizzes(
-            @AuthenticationPrincipal Jwt jwt) {
-
+    public ResponseEntity<Map<String, List<Map<String, String>>>> getUserQuizzes(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -59,10 +57,7 @@ public class QuizController {
      * 🔥 [Issue 6] Création d'un nouveau quiz
      */
     @PostMapping
-    public ResponseEntity<Void> createQuiz(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestBody Map<String, String> quizData) {
-
+    public ResponseEntity<Void> createQuiz(@AuthenticationPrincipal Jwt jwt, @RequestBody Map<String, String> quizData) {
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -87,13 +82,10 @@ public class QuizController {
     }
 
     /**
-     * 🔥 [Issue 7] Récupérer un quiz par son ID (seulement si l'utilisateur en est propriétaire)
+     * 🔥 [Issue 10] Récupérer un quiz avec ses questions et réponses
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getQuizById(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String id) {
-
+    public ResponseEntity<Map<String, Object>> getQuizDetails(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -102,7 +94,7 @@ public class QuizController {
         String uid = jwt.getSubject();
         logger.info("🔍 Retrieving quiz {} for user {}", id, uid);
 
-        Optional<Quiz> quizOptional = quizService.getQuizById(id, uid);
+        Optional<Quiz> quizOptional = quizService.getQuizWithQuestionsById(id, uid);
 
         if (quizOptional.isEmpty()) {
             logger.error("❌ Quiz not found or does not belong to user.");
@@ -110,10 +102,23 @@ public class QuizController {
         }
 
         Quiz quiz = quizOptional.get();
+
+        // 🔥 Récupération et formatage des questions et réponses
+        List<Map<String, Object>> formattedQuestions = quiz.getQuestions().stream()
+                .map(question -> Map.of(
+                        "title", question.getTitle(),
+                        "answers", question.getAnswers().stream().map(answer -> Map.of(
+                                "title", answer.getTitle(),
+                                "isCorrect", answer.isCorrect()
+                        )).collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+
+        // ✅ Construire la réponse JSON
         Map<String, Object> response = Map.of(
                 "title", quiz.getTitle(),
                 "description", quiz.getDescription(),
-                "questions", List.of() // À remplacer par une vraie liste de questions si implémenté
+                "questions", formattedQuestions
         );
 
         return ResponseEntity.ok(response);
@@ -136,6 +141,7 @@ public class QuizController {
         String uid = jwt.getSubject();
         logger.info("🔄 Updating quiz title for UID: {}, Quiz ID: {}", uid, id);
 
+        // Vérifier que la requête respecte bien le format attendu
         if (updates.isEmpty() || !updates.get(0).get("op").equals("replace") ||
                 !updates.get(0).get("path").equals("/title") || updates.get(0).get("value") == null) {
             logger.error("❌ Invalid patch request format.");

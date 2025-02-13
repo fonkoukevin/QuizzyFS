@@ -26,4 +26,13 @@ public class Question {
     @JoinColumn(name = "quiz_id")
     private Quiz quiz; // Le quiz auquel cette question appartient
 
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Answer> answers; // ✅ Liste des réponses associées
+
+    // Setter (si besoin)
+    // Getter
+    @Setter
+    @Getter
+    private String title;
+
 }
