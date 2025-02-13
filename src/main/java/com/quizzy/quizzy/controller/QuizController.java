@@ -1,5 +1,9 @@
 package com.quizzy.quizzy.controller;
 
+import com.quizzy.quizzy.dto.QuestionDTO;
+import com.quizzy.quizzy.dto.QuizDTO;
+import com.quizzy.quizzy.entity.Answer;
+import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
 import com.quizzy.quizzy.service.QuizService;
 import org.slf4j.Logger;
@@ -61,7 +65,7 @@ public class QuizController {
     @PostMapping
     public ResponseEntity<Void> createQuiz(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody Map<String, String> quizData) {
+            @RequestBody QuizDTO quizDTO) {
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
@@ -69,15 +73,12 @@ public class QuizController {
         }
 
         String uid = jwt.getSubject();
-        String title = quizData.get("title");
-        String description = quizData.get("description");
-
-        if (title == null || title.isEmpty()) {
+        if (quizDTO.getTitle() == null || quizDTO.getTitle().isEmpty()) {
             logger.error("❌ Title is required.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
-        Quiz newQuiz = quizService.createQuiz(uid, title, description);
+        Quiz newQuiz = quizService.createQuiz(uid, quizDTO.getTitle(), quizDTO.getDescription());
 
         String location = String.format("/api/quiz/%s", newQuiz.getId());
 
@@ -85,6 +86,7 @@ public class QuizController {
                 .header("Location", location)
                 .build();
     }
+
 
     /**
      * 🔥 [Issue 7] Récupérer un quiz par son ID (seulement si l'utilisateur en est propriétaire)
@@ -154,4 +156,54 @@ public class QuizController {
         logger.info("✅ Quiz title updated successfully.");
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/questions")
+    public ResponseEntity<Void> addQuestionToQuiz(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String id,
+            @RequestBody QuestionDTO questionDTO) {
+
+        if (jwt == null) {
+            logger.error("❌ JWT is null. Unauthorized request.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String uid = jwt.getSubject();
+
+        Optional<Quiz> quizOptional = quizService.getQuizById(id, uid);
+        if (quizOptional.isEmpty()) {
+            logger.error("❌ Quiz {} non trouvé ou n'appartient pas à l'utilisateur", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        if (questionDTO.getTitle() == null || questionDTO.getAnswers() == null || questionDTO.getAnswers().isEmpty()) {
+            logger.error("❌ Données invalides pour la question");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        // Convertir les `AnswerDTO` en `Answer`
+        List<Answer> answers = questionDTO.getAnswers().stream()
+                .map(dto -> {
+                    Answer answer = new Answer();
+                    answer.setText(dto.getTitle());
+                    answer.setCorrect(dto.isCorrect());
+                    return answer;
+                })
+                .toList();
+
+        // Ajouter la question
+        Optional<Question> questionOptional = quizService.addQuestionToQuiz(id, questionDTO.getTitle(), answers);
+
+        if (questionOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        String location = String.format("/api/quiz/%s/questions/%d", id, questionOptional.get().getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("Location", location)
+                .build();
+    }
+
+
 }
