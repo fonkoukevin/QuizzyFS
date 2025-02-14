@@ -34,12 +34,22 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	// Partie Tests
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+
+	// Pour tester les routes avec Spring Boot
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// Pour MockMvc (tester les endpoints REST)
+	testImplementation 'org.springframework.boot:spring-boot-starter-web'
 }
 
-tasks.named('test') {
+
+test {
 	useJUnitPlatform()
 }
 
