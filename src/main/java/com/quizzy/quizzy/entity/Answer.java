@@ -10,16 +10,13 @@ import lombok.Setter;
 public class Answer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    @Column(nullable = false)
-    private String title; // 🔥 Le texte de la réponse
-
-    @Column(nullable = false)
-    private boolean isCorrect; // ✅ Si la réponse est correcte ou non
+    private String text;
+    private boolean isCorrect;
 
     @ManyToOne
     @JoinColumn(name = "question_id", nullable = false)
-    private Question question; // 🔥 Relation avec la question
+    private Question question; // 🔥 Référence à la question
 }
