@@ -99,4 +99,7 @@ public class QuizService {
         logger.error("❌ Quiz {} non trouvé", quizId);
         return Optional.empty();
     }
+
+
+
 }

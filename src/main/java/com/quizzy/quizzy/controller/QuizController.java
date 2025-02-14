@@ -112,14 +112,29 @@ public class QuizController {
         }
 
         Quiz quiz = quizOptional.get();
+
+        // 🔥 Construire la liste des questions avec leurs réponses
+        List<Map<String, Object>> questionList = quiz.getQuestions().stream().map(question -> {
+            Map<String, Object> questionMap = Map.of(
+                    "title", question.getText(),
+                    "answers", question.getAnswers().stream().map(answer -> Map.of(
+                            "title", answer.getText(),
+                            "isCorrect", answer.isCorrect()
+                    )).collect(Collectors.toList())
+            );
+            return questionMap;
+        }).collect(Collectors.toList());
+
+        // 🔥 Construire la réponse finale
         Map<String, Object> response = Map.of(
                 "title", quiz.getTitle(),
                 "description", quiz.getDescription(),
-                "questions", List.of() // À remplacer par une vraie liste de questions si implémenté
+                "questions", questionList
         );
 
         return ResponseEntity.ok(response);
     }
+
 
     /**
      * 🔥 [Issue 8] Mettre à jour le titre d'un quiz
