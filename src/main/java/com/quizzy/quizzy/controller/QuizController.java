@@ -37,7 +37,7 @@ public class QuizController {
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
     @GetMapping
-    public ResponseEntity<Map<String, List<Map<String, String>>>> getUserQuizzes(
+    public ResponseEntity<Map<String, Object>> getUserQuizzes(
             @AuthenticationPrincipal Jwt jwt) {
 
         if (jwt == null) {
@@ -58,8 +58,17 @@ public class QuizController {
                 ))
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(Map.of("data", quizData));
+        // Ajouter le lien HATEOAS pour créer un quiz
+        Map<String, Object> response = Map.of(
+                "data", quizData,
+                "_links", Map.of(
+                        "create", "/api/quiz" // Lien vers la création d'un quiz
+                )
+        );
+
+        return ResponseEntity.ok(response);
     }
+
 
 
     /**
