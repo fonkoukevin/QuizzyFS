@@ -15,8 +15,9 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:4200")); // 🔥 Allow Angular frontend
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setExposedHeaders(List.of("Access-Control-Allow-Origin", "Location"));
         config.setAllowCredentials(true); // 🔥 Required if Firebase uses cookies
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
