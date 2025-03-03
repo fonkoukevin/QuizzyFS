@@ -1,5 +1,7 @@
 package com.quizzy.quizzy.service;
 
+import com.quizzy.quizzy.dto.AnswerDTO;
+import com.quizzy.quizzy.dto.QuestionDTO;
 import com.quizzy.quizzy.entity.Answer;
 import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
@@ -53,9 +55,6 @@ public class QuizService {
         return Optional.empty(); // Quiz non trouvé ou appartient à un autre utilisateur
     }
 
-    /**
-     * 🔥 [Issue 8] Mettre à jour le titre d'un quiz
-     */
     public boolean updateQuizTitle(String quizId, String ownerUid, String newTitle) {
         Optional<Quiz> quizOptional = quizRepository.findById(quizId);
 
@@ -63,7 +62,7 @@ public class QuizService {
             Quiz quiz = quizOptional.get();
 
             if (!quiz.getOwnerUid().equals(ownerUid)) {
-                logger.warn("🚫 Tentative de modification d'un quiz ne appartenant pas à l'utilisateur !");
+                logger.warn("🚫 Tentative de modification d'un quiz qui ne t'appartient pas !");
                 return false; // L'utilisateur ne possède pas ce quiz
             }
 
@@ -98,6 +97,44 @@ public class QuizService {
 
         logger.error("❌ Quiz {} non trouvé", quizId);
         return Optional.empty();
+    }
+
+    public boolean updateQuestion(String quizId, Long questionId, QuestionDTO questionDTO) {
+        Optional<Quiz> quizOptional = quizRepository.findById(quizId);
+        if (quizOptional.isEmpty()) {
+            logger.error("❌ Quiz {} non trouvé", quizId);
+            return false;
+        }
+
+        Quiz quiz = quizOptional.get();
+
+        // Vérifier que la question appartient bien au quiz
+        Optional<Question> questionOptional = questionRepository.findById(questionId);
+        if (questionOptional.isEmpty() || !questionOptional.get().getQuiz().equals(quiz)) {
+            logger.error("❌ Question {} non trouvée dans le quiz {}", questionId, quizId);
+            return false;
+        }
+
+        Question question = questionOptional.get();
+
+        // Mise à jour du titre de la question
+        question.setText(questionDTO.getTitle());
+
+        // Suppression des réponses existantes et ajout des nouvelles
+        question.getAnswers().clear();
+        for (AnswerDTO answerDTO : questionDTO.getAnswers()) {
+            Answer answer = new Answer();
+            answer.setText(answerDTO.getTitle());
+            answer.setCorrect(answerDTO.isCorrect());
+            answer.setQuestion(question);
+            question.getAnswers().add(answer);
+        }
+
+        // Sauvegarde de la question mise à jour
+        questionRepository.save(question);
+        logger.info("✅ Question {} mise à jour avec succès", questionId);
+
+        return true;
     }
 
 
