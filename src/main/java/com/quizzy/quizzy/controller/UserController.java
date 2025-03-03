@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.Console;
 import java.util.Map;
 import java.util.Optional;
 
@@ -72,6 +73,12 @@ public class UserController {
         }
 
         User user = userEntityOptional.get();
+
+        System.out.println(Map.of(
+                "uid", uid,
+                "email", email,
+                "username", user.getUsername()
+        ));
 
         // ✅ Return User Data
         return ResponseEntity.ok(Map.of(
