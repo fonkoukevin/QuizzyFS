@@ -138,5 +138,35 @@ public class QuizService {
     }
 
 
+    public boolean isQuizStartable(Quiz quiz) {
+        // Vérifie que le titre n'est pas vide
+        if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
+            return false;
+        }
+
+        // Vérifie qu'il y a au moins une question
+        if (quiz.getQuestions().isEmpty()) {
+            return false;
+        }
+
+        // Vérifie que toutes les questions sont valides
+        for (Question question : quiz.getQuestions()) {
+            if (question.getText() == null || question.getText().trim().isEmpty()) {
+                return false;
+            }
+            if (question.getAnswers().size() < 2) {
+                return false;
+            }
+            long correctAnswers = question.getAnswers().stream().filter(Answer::isCorrect).count();
+            if (correctAnswers != 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+
 
 }

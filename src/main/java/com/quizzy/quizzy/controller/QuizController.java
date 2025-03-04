@@ -10,12 +10,17 @@ import com.quizzy.quizzy.entity.Quiz;
 import com.quizzy.quizzy.service.QuizService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,9 +41,9 @@ public class QuizController {
     /**
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
+
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getUserQuizzes(
-            @AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Map<String, Object>> getUserQuizzes(@AuthenticationPrincipal Jwt jwt) {
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
@@ -50,25 +55,41 @@ public class QuizController {
 
         List<Quiz> quizzes = quizService.getQuizzesByUser(uid);
 
-        List<Map<String, String>> quizData = quizzes.stream()
-                .map(quiz -> Map.of(
-                        "id", quiz.getId(),
-                        "title", quiz.getTitle(),
-                        "description", quiz.getDescription()
-                ))
+        // Obtenir l'URL dynamique du serveur
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+
+        // Transformer les quiz en format attendu par le front avec HATEOAS
+        List<Map<String, Object>> quizData = quizzes.stream()
+                .map(quiz -> {
+                    Map<String, Object> quizMap = new HashMap<>();
+                    quizMap.put("id", quiz.getId());
+                    quizMap.put("title", quiz.getTitle());
+                    quizMap.put("description", quiz.getDescription());
+
+                    // Vérifier si le quiz est startable
+                    if (quizService.isQuizStartable(quiz)) {
+                        quizMap.put("_links", Map.of(
+                                "start", baseUrl + "/api/quiz/" + quiz.getId() + "/start"
+                        ));
+                    }
+
+                    return quizMap;
+                })
                 .collect(Collectors.toList());
 
-        // Ajouter le lien HATEOAS pour créer un quiz
+        // Ajouter le lien pour créer un quiz
         Map<String, Object> response = Map.of(
                 "data", quizData,
-                "_links", Map.of(
-                        "create", "/api/quiz" // Lien vers la création d'un quiz
-                )
+                "_links", Map.of("create", baseUrl + "/api/quiz")
         );
 
         return ResponseEntity.ok(response);
     }
 
+
+    /**
+     * Endpoint pour démarrer un quiz (placeholder, à implémenter selon ton besoin).
+     */
 
 
     /**
