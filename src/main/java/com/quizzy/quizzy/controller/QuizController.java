@@ -37,9 +37,7 @@ public class QuizController {
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getUserQuizzes(
-            @AuthenticationPrincipal Jwt jwt) {
-
+    public ResponseEntity<Map<String, Object>> getUserQuizzes(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -50,26 +48,71 @@ public class QuizController {
 
         List<Quiz> quizzes = quizService.getQuizzesByUser(uid);
 
-        List<Map<String, String>> quizData = quizzes.stream()
-                .map(quiz -> Map.of(
-                        "id", quiz.getId(),
-                        "title", quiz.getTitle(),
-                        "description", quiz.getDescription()
-                ))
+        List<Map<String, Object>> quizData = quizzes.stream()
+                .map(quiz -> {
+                    Map<String, Object> quizMap = Map.of(
+                            "id", quiz.getId(),
+                            "title", quiz.getTitle(),
+                            "description", quiz.getDescription()
+                    );
+
+                    // Vérifier si le quiz est startable
+                    if (isQuizStartable(quiz)) {
+                        return Map.of(
+                                "id", quiz.getId(),
+                                "title", quiz.getTitle(),
+                                "description", quiz.getDescription(),
+                                "_links", Map.of(
+                                        "start", String.format("/api/quiz/%s/start", quiz.getId())
+                                )
+                        );
+                    } else {
+                        return quizMap;
+                    }
+                })
                 .collect(Collectors.toList());
 
-        // Ajouter le lien HATEOAS pour créer un quiz
         Map<String, Object> response = Map.of(
                 "data", quizData,
                 "_links", Map.of(
-                        "create", "/api/quiz" // Lien vers la création d'un quiz
+                        "create", "/api/quiz"
                 )
         );
 
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Vérifie si un quiz peut être démarré.
+     */
+    private boolean isQuizStartable(Quiz quiz) {
+        if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
+            return false;
+        }
 
+        List<Question> questions = quiz.getQuestions();
+        if (questions == null || questions.isEmpty()) {
+            return false;
+        }
+
+        for (Question question : questions) {
+            if (question.getText() == null || question.getText().trim().isEmpty()) {
+                return false;
+            }
+
+            List<Answer> answers = question.getAnswers();
+            if (answers == null || answers.size() < 2) {
+                return false;
+            }
+
+            long correctAnswersCount = answers.stream().filter(Answer::isCorrect).count();
+            if (correctAnswersCount != 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * 🔥 [Issue 7] Récupérer un quiz par son ID (seulement si l'utilisateur en est propriétaire)
@@ -100,7 +143,7 @@ public class QuizController {
         // Mapper les questions
         List<QuestionDTO> questionDTOS = quiz.getQuestions().stream().map(question -> {
             QuestionDTO qDto = new QuestionDTO();
-            qDto.setTitle(question.getText());
+            qDto.setText(question.getText());
             qDto.setAnswers(question.getAnswers().stream().map(answer -> {
                 AnswerDTO aDto = new AnswerDTO();
                 aDto.setTitle(answer.getText());
@@ -219,7 +262,7 @@ public class QuizController {
         // LOG pour voir les données envoyées
         logger.info("📩 Réception de la question pour le quiz {} : {}", id, questionDTO);
 
-        if (questionDTO.getTitle() == null) {
+        if (questionDTO.getText() == null) {
             logger.error("❌ Le titre de la question est manquant");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -247,7 +290,7 @@ public class QuizController {
                     .toList();
         }
 
-        Optional<Question> questionOptional = quizService.addQuestionToQuiz(id, questionDTO.getTitle(), answers);
+        Optional<Question> questionOptional = quizService.addQuestionToQuiz(id, questionDTO.getText(), answers);
 
         if (questionOptional.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

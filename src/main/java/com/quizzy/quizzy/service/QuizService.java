@@ -118,7 +118,7 @@ public class QuizService {
         Question question = questionOptional.get();
 
         // Mise à jour du titre de la question
-        question.setText(questionDTO.getTitle());
+        question.setText(questionDTO.getText());
 
         // Suppression des réponses existantes et ajout des nouvelles
         question.getAnswers().clear();
@@ -136,6 +136,21 @@ public class QuizService {
 
         return true;
     }
+
+    public boolean isQuizStartable(Quiz quiz) {
+        if (quiz.getTitle() == null || quiz.getTitle().isBlank()) return false;
+        if (quiz.getQuestions() == null || quiz.getQuestions().isEmpty()) return false;
+
+        for (Question question : quiz.getQuestions()) {
+            if (question.getText() == null || question.getText().isBlank()) return false;
+            if (question.getAnswers() == null || question.getAnswers().size() < 2) return false;
+            long correctAnswers = question.getAnswers().stream().filter(Answer::isCorrect).count();
+            if (correctAnswers != 1) return false;
+        }
+
+        return true;
+    }
+
 
 
 
