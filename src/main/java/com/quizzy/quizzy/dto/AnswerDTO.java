@@ -8,5 +8,5 @@ import lombok.Setter;
 @Setter
 public class AnswerDTO {
     private String title;
-    private boolean isCorrect;
+    private Boolean isCorrect;
 }

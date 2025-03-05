@@ -1,7 +1,9 @@
 package com.quizzy.quizzy.service;
 
+import com.quizzy.quizzy.dto.AllQuizUserDTO;
 import com.quizzy.quizzy.dto.AnswerDTO;
 import com.quizzy.quizzy.dto.QuestionDTO;
+import com.quizzy.quizzy.dto.QuizUserDTO;
 import com.quizzy.quizzy.entity.Answer;
 import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 @Service
 public class QuizService {
@@ -32,8 +35,10 @@ public class QuizService {
     /**
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
-    public List<Quiz> getQuizzesByUser(String ownerUid) {
-        return quizRepository.findByOwnerUid(ownerUid);
+    public AllQuizUserDTO getQuizzesByUser(String ownerUid) {
+        List<Quiz> quizzes = quizRepository.findByOwnerUid(ownerUid);
+        List<QuizUserDTO> quizData = quizzes.stream().map(quiz -> new QuizUserDTO(quiz.getId(), quiz.getTitle(), quiz.getDescription())).collect(Collectors.toList());
+        return new AllQuizUserDTO(quizData);
     }
 
     /**
@@ -128,7 +133,7 @@ public class QuizService {
         for (AnswerDTO answerDTO : questionDTO.getAnswers()) {
             Answer answer = new Answer();
             answer.setText(answerDTO.getTitle());
-            answer.setCorrect(answerDTO.isCorrect());
+            answer.setCorrect(answerDTO.getIsCorrect());
             answer.setQuestion(question);
             question.getAnswers().add(answer);
         }
@@ -174,7 +179,6 @@ public class QuizService {
         logger.info("🔹 Exécution enregistrée : executionId={} pour quizId={}", executionId, quizId);
 
     }
-
 
 
 }
