@@ -10,15 +10,13 @@ import com.quizzy.quizzy.entity.Quiz;
 import com.quizzy.quizzy.service.QuizService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.hateoas.EntityModel;
-import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.bind.annotation.*;
+import java.security.SecureRandom;
 
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +56,7 @@ public class QuizController {
         // Obtenir l'URL dynamique du serveur
         String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
 
-        // Transformer les quiz en format attendu par le front avec HATEOAS
+
         List<Map<String, Object>> quizData = quizzes.stream()
                 .map(quiz -> {
                     Map<String, Object> quizMap = new HashMap<>();
@@ -90,6 +88,73 @@ public class QuizController {
     /**
      * Endpoint pour démarrer un quiz (placeholder, à implémenter selon ton besoin).
      */
+    @GetMapping("/{id}/start")
+    public ResponseEntity<String> startQuiz(@PathVariable String id) {
+        return ResponseEntity.ok("Quiz " + id + " started!");
+    }
+
+
+
+    @PostMapping("/{quizId}/start")
+    public ResponseEntity<Void> startQuiz(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String quizId) {
+
+        if (jwt == null) {
+            logger.error("❌ JWT is null. Unauthorized request.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String uid = jwt.getSubject();
+        logger.info("📌 Tentative de lancement du quiz {} par l'utilisateur {}", quizId, uid);
+
+        // Vérifier que le quiz existe et appartient à l'utilisateur
+        Optional<Quiz> quizOptional = quizService.getQuizById(quizId, uid);
+        if (quizOptional.isEmpty()) {
+            logger.error("❌ Quiz {} non trouvé ou n'appartient pas à l'utilisateur {}", quizId, uid);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        Quiz quiz = quizOptional.get();
+
+        // Vérifier si le quiz est startable
+        if (!quizService.isQuizStartable(quiz)) {
+            logger.error("❌ Quiz {} ne peut pas être démarré car il ne respecte pas les critères", quizId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+
+        // Générer un ID unique pour l'exécution (6 caractères aléatoires)
+        String executionId = generateExecutionId();
+
+        // Enregistrer l'exécution dans le service (tu peux l'ajouter plus tard en base de données)
+        quizService.createExecution(quizId, executionId);
+
+        // Construire l'URL de l'exécution
+        String executionUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/execution/{executionId}")
+                .buildAndExpand(executionId)
+                .toUriString();
+
+        logger.info("✅ Exécution du quiz {} créée avec l'ID {}", quizId, executionId);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("Location", executionUrl)
+                .build();
+    }
+
+    /**
+     * Génère un ID aléatoire de 6 caractères pour l'exécution du quiz.
+     */
+    private String generateExecutionId() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
 
 
     /**
