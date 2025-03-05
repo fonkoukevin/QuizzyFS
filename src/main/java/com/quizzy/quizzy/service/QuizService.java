@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class QuizService {
@@ -20,6 +22,7 @@ public class QuizService {
     private static final Logger logger = LoggerFactory.getLogger(QuizService.class);
     private final QuizRepository quizRepository;
     private final QuestionRepository questionRepository;
+    private final ConcurrentMap<String, String> executions = new ConcurrentHashMap<>();
 
     public QuizService(QuizRepository quizRepository, QuestionRepository questionRepository) {
         this.quizRepository = quizRepository;
@@ -166,6 +169,11 @@ public class QuizService {
         return true;
     }
 
+    public void createExecution(String quizId, String executionId) {
+        executions.put(executionId, quizId);
+        logger.info("🔹 Exécution enregistrée : executionId={} pour quizId={}", executionId, quizId);
+
+    }
 
 
 
