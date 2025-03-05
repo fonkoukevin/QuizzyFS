@@ -1,58 +1,50 @@
 package com.quizzy.quizzy.controller;
 
-import com.quizzy.quizzy.entity.User;
-import com.quizzy.quizzy.service.UserService;
+import com.quizzy.quizzy.dto.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-import java.util.Optional;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 
-@WebMvcTest(UserController.class)
-@Import(UserControllerTest.TestConfig.class) // ✅ Use @Import for mock beans
-public class UserControllerTest {
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import utilsTest.MockMvcTestHelper;
+import java.util.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ExtendWith(SpringExtension.class) // Active Mockito
+class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private UserService userService; // ✅ No more @MockBean
-
-    private final String TEST_UID = "test-user-123";
-    private final String TEST_EMAIL = "test@example.com";
-
-    static class TestConfig {
-        @Bean
-        public UserService userService() {
-            return Mockito.mock(UserService.class); // ✅ Manually create a mock bean
-        }
-    }
+    // Helper custom de test
+    private MockMvcTestHelper mockMvcHelper;
 
     @BeforeEach
-    void setup() {
-        // Mock user data
-        User user = new User();
-        user.setUid(TEST_UID);
-        user.setUsername("test-user");
-
-        when(userService.findUserById(TEST_UID)).thenReturn(Optional.of(user));
+    void setUp() {
+        mockMvcHelper = new MockMvcTestHelper(mockMvc);
     }
 
     @Test
-    @WithMockUser(username = "test-user-123", roles = "USER")
-    void testGetCurrentUser() throws Exception {
-        mockMvc.perform(get("/api/users/me")
-                        .header("Authorization", "Bearer dummy-token"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.uid").value(TEST_UID))
-                .andExpect(jsonPath("$.username").value("test-user"));
+    void testCreatedUser() throws Exception {
+
+        String username = "TheUser";
+        var userDTO = new UserRequestDTO();
+        userDTO.setUsername(username);
+
+        var createRequest = mockMvcHelper.post("/api/users", userDTO);
+        assertEquals(201, createRequest.status());
+
+        var getRequest = mockMvcHelper.get("/api/users/me",  UserDto.class);
+        UserDto getUserDTO = getRequest.body();
+        assertEquals(username, getUserDTO.username());
+        assertEquals(200, getRequest.status());
     }
 }

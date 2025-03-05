@@ -1,9 +1,7 @@
 package com.quizzy.quizzy.controller;
 
-import com.quizzy.quizzy.dto.AnswerDTO;
-import com.quizzy.quizzy.dto.QuestionDTO;
-import com.quizzy.quizzy.dto.QuizDTO;
-import com.quizzy.quizzy.dto.QuizDetailsDTO;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.quizzy.quizzy.dto.*;
 import com.quizzy.quizzy.entity.Answer;
 import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
@@ -16,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.bind.annotation.*;
+
 import java.security.SecureRandom;
 
 import java.util.HashMap;
@@ -40,6 +39,7 @@ public class QuizController {
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
 
+    /*
     @GetMapping
     public ResponseEntity<Map<String, Object>> getUserQuizzes(@AuthenticationPrincipal Jwt jwt) {
 
@@ -83,7 +83,23 @@ public class QuizController {
 
         return ResponseEntity.ok(response);
     }
+*/
 
+
+    /**
+     * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
+     */
+    @GetMapping
+    ResponseEntity<AllQuizUserDTO> getUserQuizzes(@AuthenticationPrincipal Jwt jwt) throws JsonProcessingException {
+        if (jwt == null) {
+            logger.error("❌ JWT is null. Unauthorized request.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String uid = jwt.getSubject();
+        logger.info("✅ Retrieving quizzes for UID: {}", uid);
+        AllQuizUserDTO AllQuizData = quizService.getQuizzesByUser(uid);
+        return ResponseEntity.ok(AllQuizData);
+    }
 
     /**
      * Endpoint pour démarrer un quiz (placeholder, à implémenter selon ton besoin).
@@ -94,11 +110,8 @@ public class QuizController {
     }
 
 
-
     @PostMapping("/{quizId}/start")
-    public ResponseEntity<Void> startQuiz(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String quizId) {
+    public ResponseEntity<Void> startQuiz(@AuthenticationPrincipal Jwt jwt, @PathVariable String quizId) {
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
@@ -130,16 +143,11 @@ public class QuizController {
         quizService.createExecution(quizId, executionId);
 
         // Construire l'URL de l'exécution
-        String executionUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/execution/{executionId}")
-                .buildAndExpand(executionId)
-                .toUriString();
+        String executionUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/execution/{executionId}").buildAndExpand(executionId).toUriString();
 
         logger.info("✅ Exécution du quiz {} créée avec l'ID {}", quizId, executionId);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .header("Location", executionUrl)
-                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).header("Location", executionUrl).build();
     }
 
     /**
@@ -156,14 +164,11 @@ public class QuizController {
     }
 
 
-
     /**
      * 🔥 [Issue 7] Récupérer un quiz par son ID (seulement si l'utilisateur en est propriétaire)
      */
     @GetMapping("/{id}")
-    public ResponseEntity<QuizDetailsDTO> getQuizById(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String id) {
+    public ResponseEntity<QuizDetailsDTO> getQuizById(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
 
         if (jwt == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -190,7 +195,7 @@ public class QuizController {
             qDto.setAnswers(question.getAnswers().stream().map(answer -> {
                 AnswerDTO aDto = new AnswerDTO();
                 aDto.setTitle(answer.getText());
-                aDto.setCorrect(answer.isCorrect());
+                aDto.setIsCorrect(answer.isCorrect());
                 return aDto;
             }).toList());
             return qDto;
@@ -202,9 +207,7 @@ public class QuizController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createQuiz(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestBody(required = false) QuizDTO quizDTO) { // Permet de gérer un body vide
+    public ResponseEntity<Void> createQuiz(@AuthenticationPrincipal Jwt jwt, @RequestBody(required = false) QuizDTO quizDTO) { // Permet de gérer un body vide
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
@@ -226,18 +229,12 @@ public class QuizController {
 
         String location = String.format("/api/quiz/%s", newQuiz.getId());
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .header("Location", location)
-                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).header("Location", location).build();
     }
 
 
-
     @PatchMapping("/{id}")
-    public ResponseEntity<Void> updateQuizTitle(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String id,
-            @RequestBody List<Map<String, String>> updates) {
+    public ResponseEntity<Void> updateQuizTitle(@AuthenticationPrincipal Jwt jwt, @PathVariable String id, @RequestBody List<Map<String, String>> updates) {
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
@@ -290,10 +287,7 @@ public class QuizController {
     }
 
     @PostMapping("/{id}/questions")
-    public ResponseEntity<Void> addQuestionToQuiz(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String id,
-            @RequestBody QuestionDTO questionDTO) {
+    public ResponseEntity<Void> addQuestionToQuiz(@AuthenticationPrincipal Jwt jwt, @PathVariable String id, @RequestBody QuestionDTO questionDTO) {
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
@@ -321,16 +315,9 @@ public class QuizController {
         List<Answer> answers;
         if (questionDTO.getAnswers() == null || questionDTO.getAnswers().isEmpty()) {
             logger.warn("⚠️ Aucune réponse fournie, génération automatique...");
-            answers = List.of(
-                    new Answer("Answer 1", false),
-                    new Answer("Answer 2", false),
-                    new Answer("Answer 3", false),
-                    new Answer("Answer 4", false)
-            );
+            answers = List.of(new Answer("Answer 1", false), new Answer("Answer 2", false), new Answer("Answer 3", false), new Answer("Answer 4", false));
         } else {
-            answers = questionDTO.getAnswers().stream()
-                    .map(dto -> new Answer(dto.getTitle(), dto.isCorrect()))
-                    .toList();
+            answers = questionDTO.getAnswers().stream().map(dto -> new Answer(dto.getTitle(), dto.getIsCorrect())).toList();
         }
 
         Optional<Question> questionOptional = quizService.addQuestionToQuiz(id, questionDTO.getTitle(), answers);
@@ -345,11 +332,7 @@ public class QuizController {
 
 
     @PutMapping("/{quizId}/questions/{questionId}")
-    public ResponseEntity<Void> updateQuestion(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable String quizId,
-            @PathVariable Long questionId,
-            @RequestBody QuestionDTO questionDTO) {
+    public ResponseEntity<Void> updateQuestion(@AuthenticationPrincipal Jwt jwt, @PathVariable String quizId, @PathVariable Long questionId, @RequestBody QuestionDTO questionDTO) {
 
         if (jwt == null) {
             logger.error("❌ JWT is null. Unauthorized request.");
