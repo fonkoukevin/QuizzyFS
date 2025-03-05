@@ -17,12 +17,12 @@ public class UserService {
     }
 
     public void saveUser(String uid, String username) {
-        if (!userRepository.existsById(uid)) { // 🔥 Vérifie si l'utilisateur existe déjà
-            User user = new User();
-            user.setUid(uid);
-            user.setUsername(username);
-            userRepository.save(user);
-        }
+            if (!userRepository.existsById(uid)) { // 🔥 Vérifie si l'utilisateur existe déjà
+                User user = new User();
+                user.setUid(uid);
+                user.setUsername(username);
+                userRepository.save(user);
+            }
     }
 
     public Optional<User> findUserById(String uid) {

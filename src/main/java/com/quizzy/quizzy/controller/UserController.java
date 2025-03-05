@@ -1,5 +1,6 @@
 package com.quizzy.quizzy.controller;
 
+import com.quizzy.quizzy.dto.UserDto;
 import com.quizzy.quizzy.dto.UserRequestDTO;
 import com.quizzy.quizzy.entity.User;
 import com.quizzy.quizzy.service.UserService;
@@ -52,7 +53,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<Map<String, String>> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal Jwt jwt) {
         if (jwt == null) {
             logger.error("❌ JWT is null. The request is unauthorized.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -74,18 +75,14 @@ public class UserController {
 
         User user = userEntityOptional.get();
 
-        System.out.println(Map.of(
-                "uid", uid,
-                "email", email,
-                "username", user.getUsername()
-        ));
+        UserDto userDto = new UserDto(
+                                jwt.getSubject(),
+                                jwt.getClaim("email"),
+                                user.getUsername()
+                            );
 
         // ✅ Return User Data
-        return ResponseEntity.ok(Map.of(
-                "uid", uid,
-                "email", email,
-                "username", user.getUsername()
-        ));
+        return ResponseEntity.ok(userDto);
     }
 
 }

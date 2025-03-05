@@ -1,5 +1,7 @@
 package com.quizzy.quizzy.service;
 
+import com.quizzy.quizzy.dto.AllQuizUserDTO;
+import com.quizzy.quizzy.dto.QuizUserDTO;
 import com.quizzy.quizzy.entity.Answer;
 import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class QuizService {
@@ -27,8 +30,19 @@ public class QuizService {
     /**
      * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
      */
-    public List<Quiz> getQuizzesByUser(String ownerUid) {
-        return quizRepository.findByOwnerUid(ownerUid);
+    public AllQuizUserDTO getQuizzesByUser(String ownerUid) {
+
+        List<Quiz> quizzes = quizRepository.findByOwnerUid(ownerUid);
+
+        List<QuizUserDTO> quizData = quizzes.stream()
+                .map(quiz -> new QuizUserDTO(
+                        quiz.getId(),
+                        quiz.getTitle(),
+                        quiz.getDescription()
+                ))
+                .collect(Collectors.toList());
+
+        return new AllQuizUserDTO(quizData);
     }
 
     /**
@@ -99,7 +113,4 @@ public class QuizService {
         logger.error("❌ Quiz {} non trouvé", quizId);
         return Optional.empty();
     }
-
-
-
 }

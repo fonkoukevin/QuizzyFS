@@ -1,45 +1,50 @@
 package com.quizzy.quizzy.controller;
 
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import com.quizzy.quizzy.dto.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.servlet.MockMvc;
-import utilsTest.JwtValidator;
 
-@AutoConfigureMockMvc
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.servlet.MockMvc;
+import utilsTest.MockMvcTestHelper;
+import java.util.*;
+
 @SpringBootTest
+@AutoConfigureMockMvc
+@ExtendWith(SpringExtension.class) // Active Mockito
 class UserControllerTest {
 
-    //@Autowired
+    @Autowired
     private MockMvc mockMvc;
 
-    public JwtValidator jwtValidator;
+    // Helper custom de test
+    private MockMvcTestHelper mockMvcHelper;
 
-    private UserControllerTest(@Autowired  MockMvc mockMvc) {
-        this.mockMvc = mockMvc;
-        this.jwtValidator = new JwtValidator(mockMvc);
+    @BeforeEach
+    void setUp() {
+        mockMvcHelper = new MockMvcTestHelper(mockMvc);
     }
 
     @Test
-    void testUserController() throws Exception {
-        mockMvc.perform(post("/api/users")
-                .contentType("application/json")
-                .content("{\"username\": \"test\"}")
-                .with(jwt().jwt(jwt -> jwt.claim("sub", "testUser"))))
-                .andExpect(status().isCreated());
+    void testCreatedUser() throws Exception {
 
-//        mockMvc.perform(get("/api/users/me")
-//                .with(jwt().jwt(jwt -> jwt.claim("sub", "testUser").claim("email", "test@email.com"))))
-//                .andExpect(status().isOk());
+        String username = "TheUser";
+        var userDTO = new UserRequestDTO();
+        userDTO.setUsername(username);
 
-         jwtValidator.performValidation("/api/users/me");
+        var createRequest = mockMvcHelper.post("/api/users", userDTO);
+        assertEquals(201, createRequest.status());
 
+        var getRequest = mockMvcHelper.get("/api/users/me",  UserDto.class);
+        UserDto getUserDTO = getRequest.body();
+        assertEquals(username, getUserDTO.username());
+        assertEquals(200, getRequest.status());
     }
 }

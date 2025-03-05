@@ -1,28 +1,20 @@
 package com.quizzy.quizzy.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.quizzy.quizzy.dto.AllQuizUserDTO;
 import com.quizzy.quizzy.dto.QuizDTO;
+import com.quizzy.quizzy.dto.QuizUserDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
-import org.springframework.security.test.context.support.WithMockUser;
+import static org.junit.jupiter.api.Assertions.*;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import utilsTest.MockMvcTestHelper;
-import org.springframework.security.oauth2.jwt.Jwt;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -32,35 +24,40 @@ class QuizControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private MockMvcTestHelper mockMvcHelper = new MockMvcTestHelper();
+    private MockMvcTestHelper mockMvcHelper;
 
-    @Test
-    @WithMockUser
-    void testQuizController() throws Exception {
-        mockMvc.perform(get("/api/quiz")
-                        .with(jwt().jwt(jwt -> jwt.claim("sub", "testUser"))))
-                .andExpect(status().is4xxClientError());
-        /*var body = mockMvcHelper.performRequest(mockMvc, "/api/quiz", "GET", "{}", 200);
-        System.out.println("Return  body 3 " + body);*/
+    @BeforeEach
+    void setUp() {
+        mockMvcHelper = new MockMvcTestHelper(mockMvc);
     }
 
     @Test
-    void testCreateQuizController() throws Exception {
+    void testCreatedQuiz() throws Exception {
+        var quizDto = new QuizDTO();
+        quizDto.setTitle("My quiz");
+        quizDto.setDescription("Description");
+        var createRequest = mockMvcHelper.post("/api/quiz", quizDto);
+        assertEquals(201, createRequest.status());
 
-//        HashMap<String, String> map = new HashMap<>();
-//        map.put("description", "Ma description");
-//        map.put("title", "Mon titre");
+        var quizId = createRequest.getLocationId();
 
-        QuizDTO dtoToCompare = new QuizDTO();
-        dtoToCompare.setDescription("Ma description");
-        dtoToCompare.setTitle("Mon titre");
-
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        String json = objectMapper.writeValueAsString(map);
-
-        //System.out.println(dtoToCompare);
-
-        var body = mockMvcHelper.performRequest(mockMvc, "/api/quiz", "POST", String.valueOf(dtoToCompare), 201);
-        System.out.println("Return  body 1 " + body);
+        var getRequest = mockMvcHelper.get("/api/quiz",  AllQuizUserDTO.class);
+        AllQuizUserDTO allQuiz = getRequest.body();
+        Optional<QuizUserDTO> oneQuiz = allQuiz.data().stream().filter(q -> q.id().equals(quizId)).findFirst();;
+        assertTrue(oneQuiz.isPresent());
+        // TODO check quizz is here and has the right details.
     }
+
+    // Test Issue 7
+//    @Test
+//    void testGetQuiz() throws Exception {
+//        // Récupération du body avec tous les Quiz
+//        var getRequest = mockMvcHelper.get("/api/quiz", AllQuizUserDTO.class);
+//        AllQuizUserDTO allQuiz = getRequest.body();
+//
+//        var quizDto = new QuizDTO();
+//        QuizDTO lastQuizDto = allQuiz.data().stream().filter( q -> )
+//
+//
+//    }
 }
