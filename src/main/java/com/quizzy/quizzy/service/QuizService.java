@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class QuizService {
@@ -21,6 +23,7 @@ public class QuizService {
     private static final Logger logger = LoggerFactory.getLogger(QuizService.class);
     private final QuizRepository quizRepository;
     private final QuestionRepository questionRepository;
+    private final ConcurrentMap<String, String> executions = new ConcurrentHashMap<>();
 
     public QuizService(QuizRepository quizRepository, QuestionRepository questionRepository) {
         this.quizRepository = quizRepository;
@@ -77,7 +80,7 @@ public class QuizService {
             Quiz quiz = quizOptional.get();
 
             if (!quiz.getOwnerUid().equals(ownerUid)) {
-                logger.warn("🚫 Tentative de modification d'un quiz ne appartenant pas à l'utilisateur !");
+                logger.warn("🚫 Tentative de modification d'un quiz qui ne t'appartient pas !");
                 return false; // L'utilisateur ne possède pas ce quiz
             }
 
@@ -113,4 +116,80 @@ public class QuizService {
         logger.error("❌ Quiz {} non trouvé", quizId);
         return Optional.empty();
     }
+
+    public boolean updateQuestion(String quizId, Long questionId, QuestionDTO questionDTO) {
+        Optional<Quiz> quizOptional = quizRepository.findById(quizId);
+        if (quizOptional.isEmpty()) {
+            logger.error("❌ Quiz {} non trouvé", quizId);
+            return false;
+        }
+
+        Quiz quiz = quizOptional.get();
+
+        // Vérifier que la question appartient bien au quiz
+        Optional<Question> questionOptional = questionRepository.findById(questionId);
+        if (questionOptional.isEmpty() || !questionOptional.get().getQuiz().equals(quiz)) {
+            logger.error("❌ Question {} non trouvée dans le quiz {}", questionId, quizId);
+            return false;
+        }
+
+        Question question = questionOptional.get();
+
+        // Mise à jour du titre de la question
+        question.setText(questionDTO.getTitle());
+
+        // Suppression des réponses existantes et ajout des nouvelles
+        question.getAnswers().clear();
+        for (AnswerDTO answerDTO : questionDTO.getAnswers()) {
+            Answer answer = new Answer();
+            answer.setText(answerDTO.getTitle());
+            answer.setCorrect(answerDTO.isCorrect());
+            answer.setQuestion(question);
+            question.getAnswers().add(answer);
+        }
+
+        // Sauvegarde de la question mise à jour
+        questionRepository.save(question);
+        logger.info("✅ Question {} mise à jour avec succès", questionId);
+
+        return true;
+    }
+
+
+    public boolean isQuizStartable(Quiz quiz) {
+        // Vérifie que le titre n'est pas vide
+        if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
+            return false;
+        }
+
+        // Vérifie qu'il y a au moins une question
+        if (quiz.getQuestions().isEmpty()) {
+            return false;
+        }
+
+        // Vérifie que toutes les questions sont valides
+        for (Question question : quiz.getQuestions()) {
+            if (question.getText() == null || question.getText().trim().isEmpty()) {
+                return false;
+            }
+            if (question.getAnswers().size() < 2) {
+                return false;
+            }
+            long correctAnswers = question.getAnswers().stream().filter(Answer::isCorrect).count();
+            if (correctAnswers != 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public void createExecution(String quizId, String executionId) {
+        executions.put(executionId, quizId);
+        logger.info("🔹 Exécution enregistrée : executionId={} pour quizId={}", executionId, quizId);
+
+    }
+
+
+
 }
