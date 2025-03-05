@@ -2,10 +2,7 @@ package com.quizzy.quizzy.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.quizzy.quizzy.dto.AllQuizUserDTO;
-import com.quizzy.quizzy.dto.QuestionDTO;
-import com.quizzy.quizzy.dto.QuizDTO;
-import com.quizzy.quizzy.dto.QuizUserDTO;
+import com.quizzy.quizzy.dto.*;
 import com.quizzy.quizzy.entity.Answer;
 import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
@@ -313,7 +310,6 @@ public class QuizController {
         return ResponseEntity.status(HttpStatus.CREATED).header("Location", location).build();
     }
 
-
     @PutMapping("/{quizId}/questions/{questionId}")
     public ResponseEntity<Void> updateQuestion(
             @AuthenticationPrincipal Jwt jwt,
@@ -345,6 +341,4 @@ public class QuizController {
         logger.info("✅ Question {} mise à jour dans le quiz {}", questionId, quizId);
         return ResponseEntity.noContent().build();
     }
-
-
 }
