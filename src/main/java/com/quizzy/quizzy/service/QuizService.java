@@ -1,9 +1,6 @@
 package com.quizzy.quizzy.service;
 
-import com.quizzy.quizzy.dto.AllQuizUserDTO;
-import com.quizzy.quizzy.dto.AnswerDTO;
-import com.quizzy.quizzy.dto.QuestionDTO;
-import com.quizzy.quizzy.dto.QuizUserDTO;
+import com.quizzy.quizzy.dto.*;
 import com.quizzy.quizzy.entity.Answer;
 import com.quizzy.quizzy.entity.Question;
 import com.quizzy.quizzy.entity.Quiz;
@@ -12,8 +9,13 @@ import com.quizzy.quizzy.repository.QuizRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
+import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -31,120 +33,6 @@ public class QuizService {
         this.quizRepository = quizRepository;
         this.questionRepository = questionRepository;
     }
-
-    /**
-     * 🔥 [Issue 5] Récupérer tous les quiz d'un utilisateur
-     */
-    public AllQuizUserDTO getQuizzesByUser(String ownerUid) {
-        List<Quiz> quizzes = quizRepository.findByOwnerUid(ownerUid);
-        List<QuizUserDTO> quizData = quizzes.stream().map(quiz -> new QuizUserDTO(quiz.getId(), quiz.getTitle(), quiz.getDescription())).collect(Collectors.toList());
-        return new AllQuizUserDTO(quizData);
-    }
-
-    /**
-     * 🔥 [Issue 6] Créer un nouveau quiz
-     */
-    public Quiz createQuiz(String ownerUid, String title, String description) {
-        Quiz quiz = new Quiz();
-        quiz.setOwnerUid(ownerUid);
-        quiz.setTitle(title);
-        quiz.setDescription(description);
-        return quizRepository.save(quiz);
-    }
-
-    /**
-     * 🔥 [Issue 7] Récupérer un quiz par ID (uniquement si l'utilisateur en est le propriétaire)
-     */
-    public Optional<Quiz> getQuizById(String quizId, String ownerUid) {
-        Optional<Quiz> quiz = quizRepository.findById(quizId);
-        if (quiz.isPresent() && quiz.get().getOwnerUid().equals(ownerUid)) {
-            return quiz;
-        }
-        return Optional.empty(); // Quiz non trouvé ou appartient à un autre utilisateur
-    }
-
-    public boolean updateQuizTitle(String quizId, String ownerUid, String newTitle) {
-        Optional<Quiz> quizOptional = quizRepository.findById(quizId);
-
-        if (quizOptional.isPresent()) {
-            Quiz quiz = quizOptional.get();
-
-            if (!quiz.getOwnerUid().equals(ownerUid)) {
-                logger.warn("🚫 Tentative de modification d'un quiz qui ne t'appartient pas !");
-                return false; // L'utilisateur ne possède pas ce quiz
-            }
-
-            quiz.setTitle(newTitle);
-            quizRepository.save(quiz);
-            return true;
-        }
-
-        logger.warn("❌ Quiz ID {} non trouvé.", quizId);
-        return false; // Quiz non trouvé
-    }
-
-    public Optional<Question> addQuestionToQuiz(String quizId, String text, List<Answer> answers) {
-        Optional<Quiz> quizOptional = quizRepository.findById(quizId);
-
-        if (quizOptional.isPresent()) {
-            Quiz quiz = quizOptional.get();
-
-            Question question = new Question();
-            question.setText(text);
-            question.setQuiz(quiz);
-
-            for (Answer answer : answers) {
-                answer.setQuestion(question);
-            }
-            question.setAnswers(answers);
-
-            Question savedQuestion = questionRepository.save(question);
-            logger.info("✅ Question '{}' ajoutée au quiz '{}'", text, quiz.getTitle());
-            return Optional.of(savedQuestion);
-        }
-
-        logger.error("❌ Quiz {} non trouvé", quizId);
-        return Optional.empty();
-    }
-
-    public boolean updateQuestion(String quizId, Long questionId, QuestionDTO questionDTO) {
-        Optional<Quiz> quizOptional = quizRepository.findById(quizId);
-        if (quizOptional.isEmpty()) {
-            logger.error("❌ Quiz {} non trouvé", quizId);
-            return false;
-        }
-
-        Quiz quiz = quizOptional.get();
-
-        // Vérifier que la question appartient bien au quiz
-        Optional<Question> questionOptional = questionRepository.findById(questionId);
-        if (questionOptional.isEmpty() || !questionOptional.get().getQuiz().equals(quiz)) {
-            logger.error("❌ Question {} non trouvée dans le quiz {}", questionId, quizId);
-            return false;
-        }
-
-        Question question = questionOptional.get();
-
-        // Mise à jour du titre de la question
-        question.setText(questionDTO.getTitle());
-
-        // Suppression des réponses existantes et ajout des nouvelles
-        question.getAnswers().clear();
-        for (AnswerDTO answerDTO : questionDTO.getAnswers()) {
-            Answer answer = new Answer();
-            answer.setText(answerDTO.getTitle());
-            answer.setCorrect(answerDTO.getIsCorrect());
-            answer.setQuestion(question);
-            question.getAnswers().add(answer);
-        }
-
-        // Sauvegarde de la question mise à jour
-        questionRepository.save(question);
-        logger.info("✅ Question {} mise à jour avec succès", questionId);
-
-        return true;
-    }
-
 
     public boolean isQuizStartable(Quiz quiz) {
         // Vérifie que le titre n'est pas vide
@@ -179,6 +67,138 @@ public class QuizService {
         logger.info("🔹 Exécution enregistrée : executionId={} pour quizId={}", executionId, quizId);
 
     }
+
+
+
+    public AllQuizUserDTO getQuizzesByUser(String ownerUid) {
+        List<QuizUserDTO> quizzes = quizRepository.findByOwnerUid(ownerUid).stream()
+                .map(quiz -> new QuizUserDTO(
+                        String.valueOf(quiz.getId()),
+                        quiz.getTitle(),
+                        quiz.getDescription(),
+                        isQuizStartable(quiz) ? Map.of("start", getBaseUrl() + "/api/quiz/" + quiz.getId() + "/start") : Map.of()
+                ))
+                .collect(Collectors.toList());
+
+        return new AllQuizUserDTO(quizzes, Map.of("create", getBaseUrl() + "/api/quiz"));
+    }
+
+
+    public Quiz createQuiz(String ownerUid, String title, String description) {
+        return quizRepository.save(new Quiz(ownerUid, title, description));
+    }
+
+
+    private String getBaseUrl() {
+        return ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+    }
+
+    public Optional<Quiz> getQuizEntityById(String quizId, String ownerUid) {
+        return quizRepository.findById(quizId)
+                .filter(quiz -> quiz.getOwnerUid().equals(ownerUid));
+    }
+
+        public Optional<QuizDetailsDTO> getQuizById(String quizId, String ownerUid) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
+                    .map(quiz -> new QuizDetailsDTO(
+                            quiz.getTitle(),
+                            quiz.getDescription(),
+                            quiz.getQuestions().stream()
+                                    .map(q -> new QuestionDTO(String.valueOf(q.getId()), q.getText(), q.getAnswers().stream()
+                                            .map(a -> new AnswerDTO(a.getText(), a.isCorrect()))
+                                            .toList()))
+                                    .toList()
+                    ));
+        }
+
+        public boolean updateQuizTitle(String quizId, String ownerUid, List<Map<String, String>> updates) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
+                    .map(quiz -> {
+                        quiz.setTitle(updates.get(0).get("value"));
+                        quizRepository.save(quiz);
+                        return true;
+                    })
+                    .orElse(false);
+        }
+
+        public Optional<Question> addQuestionToQuiz(String quizId, String ownerUid, QuestionDTO questionDTO) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
+                    .map(quiz -> {
+                        Question question = new Question(questionDTO.title(), quiz);
+                        List<Answer> answers = questionDTO.answers().stream()
+                                .map(dto -> new Answer(dto.title(), dto.isCorrect(), question))
+                                .collect(Collectors.toList()); // ✅ Collecte en tant que List<Answer>
+
+                        question.setAnswers(answers); // ✅ Pas d'erreur de typage
+
+
+
+
+                        return questionRepository.save(question);
+                    });
+        }
+
+        public boolean updateQuestion(String quizId, String questionId, String ownerUid, QuestionDTO questionDTO) {
+            return questionRepository.findById(Long.parseLong(questionId))
+                    .filter(question -> question.getQuiz().getId().equals(quizId))
+                    .map(question -> {
+                        question.setText(questionDTO.title());
+                        List<Answer> answers = question.getAnswers();
+                        answers.clear(); // ✅ Supprime les anciennes réponses sans casser la collection Hibernate
+
+                        for (AnswerDTO answerDTO : questionDTO.answers()) {
+                            Answer answer = new Answer();
+                            answer.setText(answerDTO.title());
+                            answer.setCorrect(answerDTO.isCorrect());
+                            answer.setQuestion(question);
+                            answers.add(answer); // ✅ Ajoute directement dans la collection existante
+                        }
+
+// Hibernate détectera les suppressions/ajouts sans problème
+                        questionRepository.save(question);
+
+                        questionRepository.save(question);
+                        return true;
+                    })
+                    .orElse(false);
+        }
+
+        public Optional<URI> startQuiz(String quizId, String ownerUid) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid) && isQuizStartable(quiz))
+                    .map(quiz -> {
+                        String executionId = generateExecutionId();
+                        executions.put(executionId, quizId);
+                        return URI.create("/execution/" + executionId);
+                    });
+        }
+
+        private String generateExecutionId() {
+            return new SecureRandom().ints(6, 0, 36)
+                    .mapToObj(i -> "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".charAt(i))
+                    .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString();
+        }
+
+
+    public URI getQuizLocation(String quizId) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/quiz/{id}")
+                .buildAndExpand(quizId)
+                .toUri();
+    }
+
+    // Méthode pour générer l'URL d'une question
+    public URI getQuestionLocation(String quizId, String questionId) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/quiz/{quizId}/questions/{questionId}")
+                .buildAndExpand(quizId, questionId)
+                .toUri();
+    }
+
+
 
 
 }

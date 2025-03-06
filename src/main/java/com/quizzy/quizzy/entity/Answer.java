@@ -25,10 +25,13 @@ public class Answer {
     private Question question;
 
     // ✅ Constructeur avec paramètres
-    public Answer(String text, boolean correct) {
+// ✅ Constructeur avec texte, état correct et question associée
+    public Answer(String text, boolean correct, Question question) {
         this.text = text;
         this.correct = correct;
+        this.question = question;
     }
+
 
     // ✅ Constructeur vide (pour Hibernate)
     public Answer() {
