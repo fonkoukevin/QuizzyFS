@@ -1,13 +1,4 @@
 package com.quizzy.quizzy.dto;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-
-@Getter
-@Setter
-@NoArgsConstructor
-public class QuizDTO {
-    private String title;
-    private String description;
+public record QuizDTO(String title, String description) {
 }

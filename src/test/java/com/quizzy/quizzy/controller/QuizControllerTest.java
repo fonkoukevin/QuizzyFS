@@ -33,9 +33,8 @@ class QuizControllerTest {
 
     @Test
     void testCreatedQuiz() throws Exception {
-        var quizDto = new QuizDTO();
-        quizDto.setTitle("My quiz");
-        quizDto.setDescription("Description");
+        var quizDto = new QuizDTO("My quiz", "Description"); // ✅ Passer les valeurs directement
+
         var createRequest = mockMvcHelper.post("/api/quiz", quizDto);
         assertEquals(201, createRequest.status());
 

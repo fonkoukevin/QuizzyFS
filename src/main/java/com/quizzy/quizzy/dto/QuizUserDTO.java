@@ -1,4 +1,6 @@
 package com.quizzy.quizzy.dto;
 
-public record QuizUserDTO(String id, String title, String description) {
+import java.util.Map;
+
+public record QuizUserDTO(String id, String title, String description, Map<String, String> _links) {
 }

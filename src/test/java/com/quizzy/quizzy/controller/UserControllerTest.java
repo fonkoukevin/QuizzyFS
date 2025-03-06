@@ -36,8 +36,8 @@ class UserControllerTest {
     void testCreatedUser() throws Exception {
 
         String username = "TheUser";
-        var userDTO = new UserRequestDTO();
-        userDTO.setUsername(username);
+        var userDTO = new UserRequestDTO(username); // ✅ Passer le paramètre attendu
+
 
         var createRequest = mockMvcHelper.post("/api/users", userDTO);
         assertEquals(201, createRequest.status());
