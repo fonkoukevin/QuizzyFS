@@ -34,6 +34,7 @@ public class QuizService {
         this.questionRepository = questionRepository;
     }
 
+
     public boolean isQuizStartable(Quiz quiz) {
         // Vérifie que le titre n'est pas vide
         if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
@@ -68,6 +69,8 @@ public class QuizService {
 
     }
 
+
+
     public AllQuizUserDTO getQuizzesByUser(String ownerUid) {
         List<QuizUserDTO> quizzes = quizRepository.findByOwnerUid(ownerUid).stream()
                 .map(quiz -> new QuizUserDTO(
@@ -96,89 +99,94 @@ public class QuizService {
                 .filter(quiz -> quiz.getOwnerUid().equals(ownerUid));
     }
 
-    public Optional<QuizDetailsDTO> getQuizById(String quizId, String ownerUid) {
-        return quizRepository.findById(quizId)
-                .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
-                .map(quiz -> new QuizDetailsDTO(
-                        quiz.getTitle(),
-                        quiz.getDescription(),
-                        quiz.getQuestions().stream()
-                                .map(q -> new QuestionDTO(String.valueOf(q.getId()), q.getText(), q.getAnswers().stream()
-                                        .map(a -> new AnswerDTO(a.getText(), a.isCorrect()))
-                                        .toList()))
-                                .toList()
-                ));
-    }
+        public Optional<QuizDetailsDTO> getQuizById(String quizId, String ownerUid) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
+                    .map(quiz -> new QuizDetailsDTO(
+                            quiz.getTitle(),
+                            quiz.getDescription(),
+                            quiz.getQuestions().stream()
+                                    .map(q -> new QuestionDTO(String.valueOf(q.getId()), q.getText(), q.getAnswers().stream()
+                                            .map(a -> new AnswerDTO(a.getText(), a.isCorrect()))
+                                            .toList()))
+                                    .toList()
+                    ));
+        }
 
-    public boolean updateQuizTitle(String quizId, String ownerUid, List<Map<String, String>> updates) {
-        return quizRepository.findById(quizId)
-                .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
-                .map(quiz -> {
-                    quiz.setTitle(updates.get(0).get("value"));
-                    quizRepository.save(quiz);
-                    return true;
-                })
-                .orElse(false);
-    }
+        public boolean updateQuizTitle(String quizId, String ownerUid, List<Map<String, String>> updates) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
+                    .map(quiz -> {
+                        quiz.setTitle(updates.get(0).get("value"));
+                        quizRepository.save(quiz);
+                        return true;
+                    })
+                    .orElse(false);
+        }
 
-    public Optional<Question> addQuestionToQuiz(String quizId, String ownerUid, QuestionDTO questionDTO) {
-        return quizRepository.findById(quizId)
-                .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
-                .map(quiz -> {
-                    Question question = new Question(questionDTO.title(), quiz);
-                    List<Answer> answers = questionDTO.answers().stream()
-                            .map(dto -> new Answer(dto.title(), dto.isCorrect(), question))
-                            .collect(Collectors.toList()); // ✅ Collecte en tant que List<Answer>
+        public Optional<Question> addQuestionToQuiz(String quizId, String ownerUid, QuestionDTO questionDTO) {
+            return quizRepository.findById(quizId)
+                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid))
+                    .map(quiz -> {
+                        Question question = new Question(questionDTO.title(), quiz);
+                        List<Answer> answers = questionDTO.answers().stream()
+                                .map(dto -> new Answer(dto.title(), dto.isCorrect(), question))
+                                .collect(Collectors.toList()); // ✅ Collecte en tant que List<Answer>
 
-                    question.setAnswers(answers); // ✅ Pas d'erreur de typage
-
-
+                        question.setAnswers(answers); // ✅ Pas d'erreur de typage
 
 
-                    return questionRepository.save(question);
-                });
-    }
 
-    public boolean updateQuestion(String quizId, String questionId, String ownerUid, QuestionDTO questionDTO) {
-        return questionRepository.findById(Long.parseLong(questionId))
-                .filter(question -> question.getQuiz().getId().equals(quizId))
-                .map(question -> {
-                    question.setText(questionDTO.title());
-                    List<Answer> answers = question.getAnswers();
-                    answers.clear(); // ✅ Supprime les anciennes réponses sans casser la collection Hibernate
 
-                    for (AnswerDTO answerDTO : questionDTO.answers()) {
-                        Answer answer = new Answer();
-                        answer.setText(answerDTO.title());
-                        answer.setCorrect(answerDTO.isCorrect());
-                        answer.setQuestion(question);
-                        answers.add(answer); // ✅ Ajoute directement dans la collection existante
-                    }
+                        return questionRepository.save(question);
+                    });
+        }
 
-        // Hibernate détectera les suppressions/ajouts sans problème
-                    questionRepository.save(question);
+        public boolean updateQuestion(String quizId, String questionId, String ownerUid, QuestionDTO questionDTO) {
+            return questionRepository.findById(Long.parseLong(questionId))
+                    .filter(question -> question.getQuiz().getId().equals(quizId))
+                    .map(question -> {
+                        question.setText(questionDTO.title());
+                        List<Answer> answers = question.getAnswers();
+                        answers.clear(); // ✅ Supprime les anciennes réponses sans casser la collection Hibernate
 
-                    questionRepository.save(question);
-                    return true;
-                })
-                .orElse(false);
-    }
+                        for (AnswerDTO answerDTO : questionDTO.answers()) {
+                            Answer answer = new Answer();
+                            answer.setText(answerDTO.title());
+                            answer.setCorrect(answerDTO.isCorrect());
+                            answer.setQuestion(question);
+                            answers.add(answer); // ✅ Ajoute directement dans la collection existante
+                        }
+
+// Hibernate détectera les suppressions/ajouts sans problème
+                        questionRepository.save(question);
+
+                        questionRepository.save(question);
+                        return true;
+                    })
+                    .orElse(false);
+        }
 
     public Optional<URI> startQuiz(String quizId, String ownerUid) {
         return quizRepository.findById(quizId)
                 .filter(quiz -> quiz.getOwnerUid().equals(ownerUid) && isQuizStartable(quiz))
                 .map(quiz -> {
                     String executionId = generateExecutionId();
-                    executions.put(executionId, quizId);
+                    quiz.setExecutionId(executionId); // ✅ Sauvegarde l'executionId dans la base
+                    quizRepository.save(quiz); // ✅ Enregistre la modification en base
+
+                    logger.info("✅ Exécution du quiz {} démarrée avec executionId={}", quizId, executionId);
+
                     return URI.create("/execution/" + executionId);
                 });
     }
 
-    private String generateExecutionId() {
-        return new SecureRandom().ints(6, 0, 36)
-                .mapToObj(i -> "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".charAt(i))
-                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString();
-    }
+
+        private String generateExecutionId() {
+            return new SecureRandom().ints(6, 0, 36)
+                    .mapToObj(i -> "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".charAt(i))
+                    .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append).toString();
+        }
 
 
     public URI getQuizLocation(String quizId) {
@@ -195,4 +203,8 @@ public class QuizService {
                 .buildAndExpand(quizId, questionId)
                 .toUri();
     }
+
+
+
+
 }
