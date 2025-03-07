@@ -2,9 +2,11 @@ package com.quizzy.quizzy.controller;
 
 
 import com.quizzy.quizzy.dto.*;
+import com.quizzy.quizzy.entity.Quiz;
 import com.quizzy.quizzy.service.QuizService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -17,6 +19,7 @@ import java.security.SecureRandom;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
@@ -104,6 +107,15 @@ public class QuizController {
                 .<ResponseEntity<Void>>map(location -> ResponseEntity.created(location).build())
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
+//    @GetMapping("/{quizId}/execution")
+//    public ResponseEntity<Map<String, String>> getExecutionId(@PathVariable String quizId) {
+//        Optional<Quiz> quiz = quizService.getQuizById(quizId);
+//        if (quiz.isEmpty() || quiz.get().getExecutionId() == null) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "No executionId found"));
+//        }
+//        return ResponseEntity.ok(Map.of("executionId", quiz.get().getExecutionId()));
+//    }
 
 
 }

@@ -1,9 +1,7 @@
-
-
 package com.quizzy.quizzy.entity;
 
 import jakarta.persistence.*;
-        import java.util.List;
+import java.util.List;
 
 @Entity
 public class Quiz {
@@ -18,6 +16,10 @@ public class Quiz {
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Question> questions;
+
+    // ✅ Ajout de l'attribut executionId
+    @Column(unique = true, nullable = true)
+    private String executionId;
 
     // ✅ Constructeur par défaut (obligatoire pour JPA)
     public Quiz() {
@@ -69,5 +71,14 @@ public class Quiz {
 
     public void setQuestions(List<Question> questions) {
         this.questions = questions;
+    }
+
+    // ✅ Ajout du getter et setter pour executionId
+    public String getExecutionId() {
+        return executionId;
+    }
+
+    public void setExecutionId(String executionId) {
+        this.executionId = executionId;
     }
 }

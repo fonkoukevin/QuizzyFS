@@ -34,6 +34,7 @@ public class QuizService {
         this.questionRepository = questionRepository;
     }
 
+
     public boolean isQuizStartable(Quiz quiz) {
         // Vérifie que le titre n'est pas vide
         if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
@@ -166,15 +167,20 @@ public class QuizService {
                     .orElse(false);
         }
 
-        public Optional<URI> startQuiz(String quizId, String ownerUid) {
-            return quizRepository.findById(quizId)
-                    .filter(quiz -> quiz.getOwnerUid().equals(ownerUid) && isQuizStartable(quiz))
-                    .map(quiz -> {
-                        String executionId = generateExecutionId();
-                        executions.put(executionId, quizId);
-                        return URI.create("/execution/" + executionId);
-                    });
-        }
+    public Optional<URI> startQuiz(String quizId, String ownerUid) {
+        return quizRepository.findById(quizId)
+                .filter(quiz -> quiz.getOwnerUid().equals(ownerUid) && isQuizStartable(quiz))
+                .map(quiz -> {
+                    String executionId = generateExecutionId();
+                    quiz.setExecutionId(executionId); // ✅ Sauvegarde l'executionId dans la base
+                    quizRepository.save(quiz); // ✅ Enregistre la modification en base
+
+                    logger.info("✅ Exécution du quiz {} démarrée avec executionId={}", quizId, executionId);
+
+                    return URI.create("/execution/" + executionId);
+                });
+    }
+
 
         private String generateExecutionId() {
             return new SecureRandom().ints(6, 0, 36)
