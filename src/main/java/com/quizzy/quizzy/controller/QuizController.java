@@ -38,7 +38,6 @@ public class QuizController {
         return ResponseEntity.ok("Quiz " + id + " started!");
     }
 
-
     /**
      * Génère un ID aléatoire de 6 caractères pour l'exécution du quiz.
      */
@@ -52,19 +51,17 @@ public class QuizController {
         return sb.toString();
     }
 
+    @GetMapping
+    public ResponseEntity<AllQuizUserDTO> getUserQuizzes(JwtAuthenticationToken jwt) {
+        return ResponseEntity.ok(quizService.getQuizzesByUser(jwt.getName()));
+    }
 
-
-        @GetMapping
-        public ResponseEntity<AllQuizUserDTO> getUserQuizzes(JwtAuthenticationToken jwt) {
-            return ResponseEntity.ok(quizService.getQuizzesByUser(jwt.getName()));
-        }
-
-        @GetMapping("/{id}")
-        public ResponseEntity<QuizDetailsDTO> getQuizById(JwtAuthenticationToken jwt, @PathVariable String id) {
-            return quizService.getQuizById(id, jwt.getName())
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
-        }
+    @GetMapping("/{id}")
+    public ResponseEntity<QuizDetailsDTO> getQuizById(JwtAuthenticationToken jwt, @PathVariable String id) {
+        return quizService.getQuizById(id, jwt.getName())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     @PostMapping
     public ResponseEntity<Void> createQuiz(JwtAuthenticationToken jwt, @RequestBody QuizDTO quizDTO) {
@@ -74,10 +71,12 @@ public class QuizController {
 
     @PatchMapping("/{id}")
         public ResponseEntity<Void> updateQuizTitle(@AuthenticationPrincipal Jwt jwt, @PathVariable String id, @RequestBody List<Map<String, String>> updates) {
-            return quizService.updateQuizTitle(id, jwt.getSubject(), updates) ?
+
+        return quizService.updateQuizTitle(id, jwt.getSubject(), updates) ?
                     ResponseEntity.noContent().build() :
                     ResponseEntity.notFound().build();
         }
+
     @PostMapping("/{id}/questions")
     public ResponseEntity<Void> addQuestionToQuiz(@AuthenticationPrincipal Jwt jwt,
                                                   @PathVariable String id,
@@ -104,6 +103,5 @@ public class QuizController {
                 .<ResponseEntity<Void>>map(location -> ResponseEntity.created(location).build())
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
 
 }
